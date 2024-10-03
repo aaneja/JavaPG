@@ -24,13 +24,8 @@ public class CFTest
             int finalCounter = counter;
             partitionQuickStatCompletableFutures[counter] = supplyAsync(() -> {
                 System.out.printf("[%d] Start CompletableFuture %d%n", Instant.now().toEpochMilli(), finalCounter);
-                try {
-                    Thread.sleep(500L * finalCounter);
-                }
-                catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                System.out.printf("[%d] End CompletableFuture %d%n", Instant.now().toEpochMilli(), finalCounter);
+                double temp = doBusyWork(finalCounter);
+                System.out.printf("[%d] End CompletableFuture %d %f %n", Instant.now().toEpochMilli(), finalCounter, temp);
 
                 return null;
             }, coreExecutor);
@@ -51,13 +46,34 @@ public class CFTest
         }
 
         someOtherMethod();
-        coreExecutor.shutdownNow(); // Forcibly shutdown the executor
+        coreExecutor.shutdownNow(); // Forcibly shutdown the executor. This terminates threads that have called `sleep` but those doing busy work will continue to run.
         coreExecutor.close();
+    }
+
+    private static double doBusyWork(int finalCounter)
+    {
+        double currentMax = 0;
+        for (long i = 0; i < finalCounter * 1_000_000_000L; i++) {
+            // Do some math work to keep the thread busy
+            double x = Math.pow(i, 2);
+            currentMax = Math.max(currentMax, x);
+        }
+        return currentMax;
+    }
+
+    private static void sleep(int finalCounter)
+    {
+        try {
+            Thread.sleep(500L * finalCounter);
+        }
+        catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void someOtherMethod()
     {
-        System.out.printf("[%d] Some other method%n", Instant.now().toEpochMilli());
+        System.out.printf("[%d] Some other method started, main thread is running fine.. %n", Instant.now().toEpochMilli());
     }
 }
 
