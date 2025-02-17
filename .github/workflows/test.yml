@@ -1,0 +1,28 @@
+name: test
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Required permissions
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+          cache: 'maven'
+
+      - name: Print settings xml
+        run: |
+          $LocalMavenM2Dir = "$env:USERPROFILE\.m2\"
+          type $LocalMavenM2Dir\settings.xml
+
+      - name: build and unit test
+        run: mvn dependency:resolve
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
